@@ -48,7 +48,9 @@ Strict Content Requirements per Slide:
    - For Slide 1 (Title Slide): EXACTLY 3 metadata lines ("Presented by: Tecmotiv Strategic Advisory", "Date: {current_date_str}", "Scope: {outline.topic} Technology & Strategy Overview").
    - For Slides 2 through {len(outline.slides)} (Content Slides): EXACTLY 4 bullet points per slide. EVERY bullet point MUST follow the structured format: '**Lead-In Header:** Specific technical explanation...'
    - The Lead-In Header must be a bold 2-4 word topic label (e.g. '**Qubit Implementation:**', '**Decoherence Mitigation:**', '**Shor\'s Algorithm:**').
-   - The explanation MUST state concrete facts, real hardware/software examples (e.g., IBM Eagle, trapped ions, surface codes, RSA impact), metrics, or operational mechanisms.
+   - The explanation MUST state concrete facts, real hardware/software examples (e.g., IBM Eagle 127-qubit, trapped ion architectures, surface code lattices, RSA-2048 impact), verified standards bodies (e.g., QED-C, NIST FIPS 203 ML-KEM, IEEE P2881), metrics, or operational mechanisms.
+   - DO NOT hallucinate organization names (e.g., use 'QED-C' or 'IEEE Quantum Initiative', NEVER invent fake consortium names).
+   - For Governance and Roadmap slides, cite specific frameworks such as NIST Cybersecurity Framework, ISO/IEC 27001 risk controls, and PQC migration timelines.
    - DO NOT write circular definitions (e.g. DO NOT say "Quantum Noise: Noise in quantum systems.").
    - ANTI-REPETITION RULE: Every slide MUST cover completely distinct information. If Slide 2 discusses environmental noise and decoherence, Slide 5 must focus purely on surface code lattice topologies, physical-to-logical qubit ratios, and threshold rates (10^-3) WITHOUT re-explaining noise basics or repeating Shor/Steane error correction code mentions from earlier slides.
 4. 'key_takeaway': A single sharp, analytical insight summarizing the key technical or business conclusion of the slide.
