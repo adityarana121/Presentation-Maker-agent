@@ -244,6 +244,17 @@ Strict Content Requirements per Slide:
   Updated both the System Prompt and Content Prompt with explicit **ANTI-REPETITION RULES** and context awareness:
   > *"CRITICAL: Maintain strict cross-slide information diversity. If Slide 2 covers noise & decoherence basics, Slide 5 must focus deeply on physical qubit overhead, surface codes, and logical qubit thresholds without re-explaining what noise is or repeating Shor/Steane mentions."*
 
+#### Iteration 3: Eliminating Circular Tautologies & Enforcing Bullet Density via Programmatic Guardrails
+- **Initial Prompt**:
+  > *"DO NOT write circular definitions (e.g. DO NOT say 'Quantum Noise: Noise in quantum systems')."*
+- **Issue Encountered**:
+  Relying solely on negative instructions resulted in occasional output inconsistency where the LLM output circular bullets (e.g., *"Performance Metrics: Performance metrics are a measure of performance..."*) or dropped to 3 bullets despite prompt instructions.
+- **Iteration & Fix**:
+  1. **Few-Shot Contrastive Exemplars**: Added explicit ❌ Bad (forbidden circular) vs ✅ Good (analytical named hardware/metrics) examples in the prompt.
+  2. **Programmatic Tautology & Density Guardrails**: Implemented dual validation in `src/generator/content_gen.py`:
+     - `is_tautological_bullet()` computes header-to-body word overlap. Any circular output is programmatically rejected and triggers an automatic LLM retry.
+     - Density validator checks `len(s.bullet_points) < 4` on content slides and triggers a retry if the LLM under-generates bullets.
+
 ---
 
 ### 3. Verbatim Debugging Prompt (python-pptx Null-Check Issue)
@@ -294,18 +305,19 @@ In accordance with project transparency guidelines:
 | Feature | Design Implementation |
 | :--- | :--- |
 | **API Retry Mechanism** | Exponential backoff (up to 3 retries with 1.5s multiplier) for rate limits and transient network failures. |
-| **Schema Validation** | Strips markdown blocks (` ```json `), parses JSON, and validates models via Pydantic. |
+| **Schema & Density Validation** | Strips markdown blocks (` ```json `), parses JSON, enforces 4-bullet density, and validates models via Pydantic. |
+| **Tautology Guardrail** | Programmatically rejects circular lead-in definitions (`is_tautological_bullet`) and triggers LLM retries. |
 | **File Lock Fallback** | Catches `PermissionError` if `.pptx` is open in PowerPoint UI and saves to a clean fallback output path. |
 | **PDF Conversion Fallback** | Prefers headless LibreOffice CLI (`soffice`), with native Win32 COM PowerPoint automation fallback. |
-| **Topic Enrichment** | Automatically expands short 1-word topics into structured presentation themes. |
 
 ---
 
 ## ⚠️ Limitations & Future Roadmap
 
 ### Limitations
-1. **Text Container Rendering**: Renders structured text card containers and takeaway banners; does not auto-generate native PowerPoint statistical charts yet.
-2. **Aspect Ratio**: Calibrated for standard 16:9 widescreen presentations (10.0" x 5.625").
+1. **Graceful Bullet Count Fallback**: While `ContentGenerator` targets exactly 4 bullet points per content slide via prompt instructions and programmatic validation retries, stochastic LLM generation may occasionally yield 3 bullets if max retries (3 attempts) are exhausted. The pipeline accepts 3 bullets (which fully satisfies the valid 3–5 spec floor in Pydantic) to guarantee runtime execution resilience rather than failing the build.
+2. **Text Container Rendering**: Renders structured text card containers and takeaway banners; does not auto-generate native PowerPoint statistical charts yet.
+3. **Aspect Ratio**: Calibrated for standard 16:9 widescreen presentations (10.0" x 5.625").
 
 ### Future Enhancements
 1. **Single-Slide Targeted Edits**: Add CLI flag `--regen-slide 3` to modify individual slides without regenerating the full presentation.
