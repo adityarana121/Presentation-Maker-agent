@@ -75,12 +75,12 @@ class LLMClient:
         Generate structured output from the LLM matching response_model schema.
         Includes automatic retry, JSON markdown strip, and schema validation.
         """
-        schema_json = json.dumps(response_model.model_json_schema(), indent=2)
+        sample_json = self._generate_sample_json_prompt(response_model)
         full_system_prompt = (
             f"{system_prompt}\n\n"
-            f"CRITICAL REQUIREMENT: You MUST respond ONLY with valid JSON matching this JSON schema:\n"
-            f"```json\n{schema_json}\n```\n"
-            f"Do not include any conversational text, commentary, or markdown wrapper outside the JSON object."
+            f"CRITICAL REQUIREMENT: Output MUST be a valid JSON object matching this structure:\n"
+            f"```json\n{sample_json}\n```\n"
+            f"Do not include any schema definitions, meta fields, or conversational commentary."
         )
 
         for attempt in range(1, max_retries + 1):
@@ -93,6 +93,11 @@ class LLMClient:
                 
                 # Parse JSON string
                 parsed_dict = json.loads(clean_json_str)
+
+                # Clean up schema metadata if echoed by LLM
+                if isinstance(parsed_dict, dict):
+                    parsed_dict.pop("$defs", None)
+                    parsed_dict.pop("$ref", None)
                 
                 # Validate against Pydantic schema
                 validated_obj = response_model.model_validate(parsed_dict)
@@ -152,8 +157,50 @@ class LLMClient:
     def _clean_json_markdown(text: str) -> str:
         """Strip markdown codeblock backticks and whitespace from JSON response."""
         text = text.strip()
-        # Find ```json ... ``` or ``` ... ```
         match = re.search(r"```(?:json)?\s*(.*?)\s*```", text, re.DOTALL)
         if match:
             return match.group(1).strip()
         return text
+
+    @staticmethod
+    def _generate_sample_json_prompt(model: Type[BaseModel]) -> str:
+        """Constructs a clean example JSON structure for the Pydantic model."""
+        if model.__name__ == "PresentationOutline":
+            example = {
+                "topic": "Quantum Computing",
+                "num_slides": 8,
+                "target_audience": "Technical and enterprise stakeholders",
+                "core_narrative": "Exploring quantum mechanics, algorithms, and practical applications",
+                "slides": [
+                    {
+                        "slide_number": 1,
+                        "title": "Introduction to Quantum Computing",
+                        "key_topics": ["Qubit basics", "Superposition", "Entanglement"],
+                        "slide_type": "title"
+                    }
+                ]
+            }
+            return json.dumps(example, indent=2)
+        elif model.__name__ == "PresentationContent":
+            example = {
+                "topic": "Quantum Computing",
+                "style": "professional",
+                "slides": [
+                    {
+                        "slide_number": 2,
+                        "title": "Quantum Computing Fundamentals",
+                        "subtitle_tag": "TECHNICAL FOUNDATIONS",
+                        "bullet_points": [
+                            "**Qubit Superposition:** Qubits leverage quantum superposition to process complex states simultaneously.",
+                            "**Quantum Entanglement:** Quantum entanglement enables instant correlation between paired qubits across distance.",
+                            "**Quantum Gate Speedups:** Unitary matrix operations accelerate linear algebra operations exponentially.",
+                            "**Decoherence Control:** Cryogenic isolation minimizes physical noise and phase disruption."
+                        ],
+                        "key_takeaway": "Quantum superposition and entanglement provide foundational computational advantages.",
+                        "speaker_notes": "Explain qubit superposition and state manipulation in detail during this slide."
+                    }
+                ]
+            }
+            return json.dumps(example, indent=2)
+        else:
+            return json.dumps(model.model_json_schema().get("properties", {}), indent=2)

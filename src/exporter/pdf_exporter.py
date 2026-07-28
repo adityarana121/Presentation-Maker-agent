@@ -80,12 +80,16 @@ class PDFExporter:
         """Converts PPTX to PDF using win32com PowerPoint application on Windows."""
         try:
             import win32com.client
+            import pythoncom
+            pythoncom.CoInitialize()
+            
             ppt_app = win32com.client.Dispatch("PowerPoint.Application")
-            # 17 = ppSaveAsPDF format constant in PowerPoint COM API
-            presentation = ppt_app.Presentations.Open(abs_pptx, WithWindow=False)
-            presentation.SaveAs(abs_pdf, 17)
+            # 32 = ppSaveAsPDF constant in PowerPoint COM API
+            presentation = ppt_app.Presentations.Open(abs_pptx, False, False, False)
+            presentation.SaveCopyAs(abs_pdf, 32)
             presentation.Close()
             ppt_app.Quit()
+            pythoncom.CoUninitialize()
             return os.path.exists(abs_pdf), ""
         except Exception as e:
             return False, str(e)

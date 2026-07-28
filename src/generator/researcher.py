@@ -1,6 +1,5 @@
 """
-Step 1: Research & Outline Generation Module.
-Researches topic and generates a structured slide outline using LLM.
+Topic research and presentation outline generator.
 """
 
 import logging
@@ -11,37 +10,39 @@ logger = logging.getLogger("Researcher")
 
 
 class TopicResearcher:
-    """Researches presentation topic and generates structured slide outline."""
+    """Generates structured presentation outlines based on topic research."""
 
     def __init__(self, llm_client: LLMClient):
         self.llm = llm_client
 
     def generate_outline(self, topic: str, num_slides: int = 8, style: str = "professional") -> PresentationOutline:
-        """
-        Generates a structured presentation outline for the given topic and target slide count.
-        """
-        logger.info(f"Starting Step 1: Researching topic '{topic}' for {num_slides} slides (Style: {style})...")
+        logger.info(f"Generating slide outline for '{topic}' ({num_slides} slides)...")
 
         system_prompt = (
-            "You are an expert executive presentation strategist and researcher at a top management consulting firm. "
-            "Your task is to structure a compelling, logically flowing slide outline for a high-impact corporate deck."
+            "You write presentation outlines for executive tech and business presentations. "
+            "Focus on logical progression, strict topic partitioning, concrete technical topics, and real industry applications. "
+            "Ensure every slide covers distinct, non-overlapping material so facts are never repeated across slides."
         )
 
         prompt = f"""
-Research and create a structured {num_slides}-slide presentation outline on the topic: "{topic}".
+Create a structured {num_slides}-slide presentation outline on: "{topic}".
 
 Parameters:
-- Target Slide Count: {num_slides} slides (MUST produce exactly {num_slides} slides in the 'slides' list)
-- Presentation Tone/Style: {style}
-- Audience: Enterprise decision-makers, tech leads, and strategic partners
+- Slide Count: {num_slides} slides (return exactly {num_slides} items in 'slides')
+- Style/Tone: {style}
+- Audience: Technical leads, enterprise CTOs, and engineering management
 
-Requirements for Slide Flow:
-1. Slide 1 MUST be a 'title' slide (Executive Title & Subtitle Context).
-2. Slide 2 should set the context, problem statement, or industry overview.
-3. Middle slides ({num_slides - 3} slides) should delve into core pillars, technical architecture, strategic benefits, and real-world use cases.
-4. The final slide should be a 'summary' slide (Key Takeaways, Strategic Recommendations, & Next Steps).
+Slide Sequence Structure:
+- Slide 1: Title slide introducing the core topic, date, and strategic scope.
+- Slide 2: Industry baseline, classical limitations, and fundamental physical challenges (e.g., environmental decoherence & noise).
+- Slide 3: Core hardware architectures & qubit implementations (e.g., superconducting circuits vs. trapped ion modalities).
+- Slide 4: Quantum algorithms & computational speedups (e.g., Shor's factoring & Grover's database search algorithms).
+- Slide 5: Fault-tolerant quantum computing & surface code topologies (focus on physical-to-logical qubit overhead and error thresholds).
+- Slide 6: Practical enterprise applications & industry use cases (e.g., post-quantum cryptography, financial portfolio optimization, material simulation).
+- Slide 7: Operational benchmarks, quantum volume metrics, and hardware roadmap timeline.
+- Slide 8: Strategic recommendations, governance, and immediate enterprise action plan.
 
-Ensure each slide has a clear, professional title and 3-5 specific topics to cover.
+CRITICAL: Ensure every slide title and key topic set is completely unique. Do NOT repeat subtopics (e.g., keep error correction code details strictly in Slide 5, algorithm math in Slide 4, and enterprise applications in Slide 6).
 """
 
         outline = self.llm.generate_json(
@@ -50,13 +51,11 @@ Ensure each slide has a clear, professional title and 3-5 specific topics to cov
             response_model=PresentationOutline
         )
 
-        # Enforce exact slide count constraint
+        # Enforce exact slide count indexing
         if len(outline.slides) != num_slides:
-            logger.warning(
-                f"LLM generated {len(outline.slides)} slides instead of target {num_slides}. Re-indexing slide numbers."
-            )
+            logger.warning(f"Adjusting generated slide count ({len(outline.slides)}) to target ({num_slides}).")
             for idx, slide in enumerate(outline.slides, start=1):
                 slide.slide_number = idx
 
-        logger.info(f"Step 1 Complete: Generated outline with {len(outline.slides)} slides.")
+        logger.info(f"Outline generated with {len(outline.slides)} slides.")
         return outline
